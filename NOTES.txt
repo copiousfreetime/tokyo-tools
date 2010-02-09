@@ -1,0 +1,7 @@
+Change the compilation of tokyo cabinet itself:
+
+If doing large number of records at a time, change HDBXFSIZINC to use much
+larger block sizes when extending the .tch file.
+
+If using the delayed record items, you can build up a larger buffer of data
+before committing by changing the HDBDRPUNIT option.
