@@ -1,17 +1,17 @@
-CFLAGS = -D_GNU_SOURCE -std=c99 -g -O3 -I/data1/tch/tc/include -L/data1/tch/tc/lib
+CFLAGS = -D_GNU_SOURCE -std=c99 -g -O3 
 #LDFLAGS = -ltokyocabinet.a
-LDFLAGS = -lpthread -lbz2 -lz -lm
+LDFLAGS = 
 CC = gcc
 
-default: tchcheck tchsplit
+default: tchcheck tchsplit iterdb
 
-tchsplit: tchsplit.c backend_for.c /data1/tch/tc/lib/libtokyocabinet.a
+tchsplit: tchsplit.c backend_for.c 
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 tchcheck: tchcheck.c sglib.h
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
-iterdb: iterdb.c
+iterdb: iterdb.c print_progress.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 clean:
 	rm -f tchcheck tchsplit iterdb *~ *.o *.m
