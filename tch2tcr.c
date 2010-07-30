@@ -28,6 +28,8 @@ TCHDB *init_src_hdb( char *path )
         fprintf( stderr, "Returned %d, %s\n", ecode, strerror( ecode ));
     }
 
+    printf( "Connected to %s\n", path );
+
     return hdb;
 }
 
@@ -46,8 +48,9 @@ TCRDB ** dest_rdbs_create( )
     TCRDB **rdbs = calloc( STORAGE_SERVER_COUNT, sizeof( TCRDB*) );
     for( int i = 0 ; i < STORAGE_SERVER_COUNT ; i++ ) {
         TCRDB *rdb = tcrdbnew();
-        if ( tcrdbopen( rdbs[i], storage_servers[i].host, storage_servers[i].port ) ) {
+        if ( tcrdbopen( rdb, storage_servers[i].host, storage_servers[i].port ) ) {
             rdbs[i] = rdb;
+            printf("Connected to %s:%d\n", storage_servers[i].host, storage_servers[i].port );
         } else {
             int ecode = tcrdbecode(rdb);
 	        fprintf(stderr, "open error on %s:%d : %s\n", storage_servers[i].host, storage_servers[i].port, tcrdberrmsg( ecode ) );
@@ -98,8 +101,8 @@ void iterate_over( TCHDB *hdb, TCRDB **rdbs )
 int main(int argc, char **argv)
 {
 
-  if ( argc < 3 ) {
-    fprintf( stderr, "Usage: %s database.hdb host:port\n", argv[0]);
+  if ( argc < 2 ) {
+    fprintf( stderr, "Usage: %s database.hdb\n", argv[0]);
     exit(1);
   }
   
