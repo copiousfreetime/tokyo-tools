@@ -40,13 +40,17 @@ File.open( h_filename, "w+" ) do |dot_h|
 typedef struct {
     unsigned long long  bitmask;
     unsigned long long  bits_used_bitmask;
-    char               *primary_host;
-    unsigned      int   primary_port;
+    char               *host;
+    unsigned      int   port;
     TCRDB              *rdb;
 } storage_config_t;
 
+#define STORAGE_SERVER_COUNT #{opts[:count]}
 
-const storage_config_t *#{func_name}( const char* mlid_s, int length );
+extern const storage_config_t storage_servers[];
+
+extern const storage_config_t *#{func_name}( const char* mlid_s, int length );
+
 #endif
 _H
   dot_h.write( content )
@@ -56,8 +60,6 @@ File.open( c_filename, "w+") do |dot_c|
   content = StringIO.new  
   content.puts <<_header
 #include "#{h_basename}"
-
-#define STORAGE_SERVER_COUNT #{opts[:count]}
 
 const storage_config_t storage_servers[] = {
 _header
@@ -72,8 +74,8 @@ _header
     {
       .bitmask           = #{bitmask},
       .bits_used_bitmask = #{bitsused},
-      .primary_host      = "#{opts[:host]}",
-      .primary_port      = #{port},
+      .host              = "#{opts[:host]}",
+      .port              = #{port},
       .rdb               = NULL
     }
 _chunk
@@ -83,7 +85,7 @@ _chunk
   
   content.puts <<_footer
    ,
-   { .primary_host = NULL }
+   { .host = NULL }
 };
 
 /*
