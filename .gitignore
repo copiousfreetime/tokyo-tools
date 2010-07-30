@@ -2,3 +2,5 @@
 *.o
 iterdb
 tch2tcr
+*.swp
+backend_for.*
