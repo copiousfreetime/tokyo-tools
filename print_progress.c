@@ -13,7 +13,8 @@ void print_progress( FILE* file, time_t start_time, long long unsigned final, lo
     struct tm *the_time = localtime( &done_at);
 
     char time_buf[32];
-    char format_buf[128] = " [%10llu / %10llu] %10.2lf per second, %6.2lf%% done, finishing at %s";  
+    char now_buf[32];
+    char format_buf[128] = " %s : [%10llu / %10llu] %10.2lf per second, %6.2lf%% done, finishing at %s";  
     int eol_char_idx = strlen( format_buf );
 
     if ( so_far >= final ) {
@@ -24,8 +25,9 @@ void print_progress( FILE* file, time_t start_time, long long unsigned final, lo
     format_buf[ eol_char_idx + 1 ] = '\0';
 
     strftime( time_buf, 256, "%Y-%m-%d %H:%M:%S", the_time );
+    strftime( now_buf, 256, "%Y-%m-%d %H:%M:%S", localtime( &now ));
 
-    fprintf(file , format_buf, so_far, final, rate, percent_done, time_buf );
+    fprintf(file , format_buf, now_buf, so_far, final, rate, percent_done, time_buf );
 
     fflush(file);
   }
