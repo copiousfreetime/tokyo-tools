@@ -47,7 +47,7 @@ typedef struct {
 
 #define STORAGE_SERVER_COUNT #{opts[:count]}
 
-extern const storage_config_t storage_servers[];
+extern storage_config_t storage_servers[];
 
 extern const storage_config_t *#{func_name}( const char* mlid_s, int length );
 
@@ -61,7 +61,7 @@ File.open( c_filename, "w+") do |dot_c|
   content.puts <<_header
 #include "#{h_basename}"
 
-const storage_config_t storage_servers[] = {
+storage_config_t storage_servers[] = {
 _header
 
   bitsused = "0x%02x" % (opts[:count] - 1 )

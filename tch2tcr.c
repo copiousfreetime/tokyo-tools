@@ -9,6 +9,8 @@
 #include <fcntl.h>
 #include "backend_for.h"
 
+#define PROGRESS_FILE "./progress.txt"
+
 void print_progress( FILE* file, time_t start_time, long long unsigned final, long long unsigned so_far );
 
 TCHDB *init_src_hdb( char *path )
@@ -33,39 +35,48 @@ TCHDB *init_src_hdb( char *path )
     return hdb;
 }
 
-void dest_rdbs_destroy( TCRDB *rdbs[] ) {
+void dest_rdbs_destroy( ) {
     for( int i = 0 ; i < STORAGE_SERVER_COUNT ; i++ ) {
-        if ( NULL != rdbs[i] ) {
-            tcrdbclose(rdbs[i]);
-            tcrdbdel( rdbs[i] );
+        if ( NULL != storage_servers[i].rdb ) {
+            tcrdbclose( storage_servers[i].rdb );
+            tcrdbdel( storage_servers[i].rdb );
         }
     }
     return;
 }
 
-TCRDB ** dest_rdbs_create( ) 
+bool dest_rdbs_create( ) 
 {
-    TCRDB **rdbs = calloc( STORAGE_SERVER_COUNT, sizeof( TCRDB*) );
     for( int i = 0 ; i < STORAGE_SERVER_COUNT ; i++ ) {
         TCRDB *rdb = tcrdbnew();
         if ( tcrdbopen( rdb, storage_servers[i].host, storage_servers[i].port ) ) {
-            rdbs[i] = rdb;
+            storage_servers[i].rdb = rdb;
             printf("Connected to %s:%d\n", storage_servers[i].host, storage_servers[i].port );
         } else {
             int ecode = tcrdbecode(rdb);
 	        fprintf(stderr, "open error on %s:%d : %s\n", storage_servers[i].host, storage_servers[i].port, tcrdberrmsg( ecode ) );
             tcrdbdel( rdb );
-            dest_rdbs_destroy( rdbs );
-            free( rdbs );
-            return NULL;
+            dest_rdbs_destroy( );
+            return false;
         }
     }
-    return rdbs;
+    return true;
+}
+
+void save_progress( uint64_t count )
+{
+    FILE *progress_file = fopen( PROGRESS_FILE, "w+" );
+    if ( progress_file ) {
+        fprintf( progress_file, "%llu\n", count );
+        fclose( progress_file );
+    } else {
+        fprintf( stderr, "open error on %s for count %llu : %s\n", PROGRESS_FILE, count, strerror( errno ) );
+    }
+    return;
 }
 
 
-
-void iterate_over( TCHDB *hdb, TCRDB **rdbs )
+void iterate_over( TCHDB *hdb )
 {
 
   TCXSTR *key   = tcxstrnew();
@@ -77,18 +88,22 @@ void iterate_over( TCHDB *hdb, TCRDB **rdbs )
   uint64_t count = 0;
   uint64_t total = tchdbrnum( hdb );
 
+  const storage_config_t* backend;
+
   printf("Database contains %llu records\n", total );
 
   /* traverse the records */
   while( tchdbiternext3( hdb, key, value ) ) {
     count++;
+    backend = backend_for( (const char*)tcxstrptr( key ), tcxstrsize( key ) );
 
-	/* if ( !tcrdbputnr( rdb, tcxstrptr( key ), tcxstrsize( key ), tcxstrptr( value ), tcxstrsize( value ) ) ) { */
-		/* ecode = tcrdbecode( rdb ); */
-		/* fprintf( stderr, "putkeep error : %s\n", tcrdberrmsg( ecode ) ); */
-	/* } */
+    if ( !tcrdbputnr( backend->rdb, tcxstrptr( key ), tcxstrsize( key ), tcxstrptr( value ), tcxstrsize( value ) ) ) {
+        int ecode = tcrdbecode( backend->rdb );
+        fprintf( stderr, "putkeep error : %s\n", tcrdberrmsg( ecode ) );
+    }
     if (( count % 10000 ) == 0 ) {
         print_progress( stdout, start, total, count );  
+        save_progress( count );
     }
   }
   tcxstrdel( key );
@@ -107,18 +122,16 @@ int main(int argc, char **argv)
   }
   
   TCHDB   *hdb = init_src_hdb( argv[1] );
-  TCRDB **rdbs = dest_rdbs_create( );
 
-  if ( NULL == rdbs ) {
+  if (!dest_rdbs_create( )) {
       tchdbclose( hdb );
       tchdbdel( hdb );
       exit( 1 );
   }
 
-  iterate_over( hdb, rdbs );
+  iterate_over( hdb );
 
-  dest_rdbs_destroy( rdbs );
-  free( rdbs );
+  dest_rdbs_destroy( );
 
   tchdbclose( hdb );
   tchdbdel( hdb );
